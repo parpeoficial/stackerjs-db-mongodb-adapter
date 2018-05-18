@@ -1,4 +1,4 @@
-import { parseFilters, parseFieldAndTable, treatValue } from "../Utils";
+import { parseFilters, treatValue } from "../Utils";
 import { Connection } from "../Connection";
 
 export class QueryBuilderQueries {
@@ -28,7 +28,7 @@ export class QueryBuilderQueries {
     }
 
     where(where) {
-        this._where = where;
+        this._where = parseFilters(where);
 
         return this;
     }
@@ -48,4 +48,5 @@ export class QueryBuilderQueries {
     execute() {
         return Connection.query(this.parse());
     }
+
 }

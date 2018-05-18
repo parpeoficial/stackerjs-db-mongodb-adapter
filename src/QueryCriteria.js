@@ -1,39 +1,56 @@
-import { treatValue, parseFieldAndTable } from "./Utils";
+import { treatValue, parseField } from "./Utils";
 
 export class QueryCriteria {
     like(field, value) {
-        value = value.indexOf("%") >= 0 ? value : treatValue(`%${value}%`);
-        return `${parseFieldAndTable(field)} LIKE ${value}`;
+        let filter = {},
+            parsedField = parseField(field);
+
+        if (value === null)
+            filter[parsedField] = { "$exists": false };
+        else
+            filter[parsedField] = new RegExp(`${value}`);
+
+        return filter;
     }
 
     eq(field, value) {
-        if (value === null)
-            return { field: { "$exists": false } };
+        let filter = {},
+            parsedField = parseField(field);
 
-        return { field: { "$eq": value } };
+        if (value === null)
+            filter[parsedField] = { "$exists": false };
+        else
+            filter[parsedField] = { "$eq": value };
+
+        return filter;
     }
 
     neq(field, value) {
-        if (value === null)
-            return { field: { "$exists": true } };
+        let filter = {},
+            parsedField = parseField(field);
 
-        return { field: { "$ne": value } };
+        if (value === null)
+            filter[parsedField] = { "$exists": true };
+        else
+            filter[parsedField] = { "$ne": value };
+
+        return filter;
     }
 
     lt(field, value) {
-        return `${parseFieldAndTable(field)} < ${treatValue(value)}`;
+        return `${parseField(field)} < ${treatValue(value)}`;
     }
 
     lte(field, value) {
-        return `${parseFieldAndTable(field)} <= ${treatValue(value)}`;
+        return `${parseField(field)} <= ${treatValue(value)}`;
     }
 
     gt(field, value) {
-        return `${parseFieldAndTable(field)} > ${treatValue(value)}`;
+        return `${parseField(field)} > ${treatValue(value)}`;
     }
 
     gte(field, value) {
-        return `${parseFieldAndTable(field)} >= ${treatValue(value)}`;
+        return `${parseField(field)} >= ${treatValue(value)}`;
     }
 
     in(field, value) {
@@ -65,6 +82,6 @@ export class QueryCriteria {
         if (typeof value === "object" && typeof value.parse === "function")
             value = treatValue(value);
 
-        return `${parseFieldAndTable(field)} ${not ? "NOT" : ""} IN ${value}`;
+        return `${parseField(field)} ${not ? "NOT" : ""} IN ${value}`;
     }
 }

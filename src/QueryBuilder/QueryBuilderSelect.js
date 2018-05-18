@@ -17,8 +17,12 @@ export class QueryBuilderSelect extends QueryBuilderQueries {
     set() {
         Object.keys(arguments).forEach(key => {
             let value = arguments[key];
-            if (Array.isArray(value))
+            if (Array.isArray(value)) {
+                if (typeof value[0] === "string")
+                    return this.fields[value[1]] = `$${value[0]}`;
+
                 return this.fields[value[1]] = value[0];
+            }
 
             return this.fields[value] = true;
         });
@@ -82,18 +86,22 @@ export class QueryBuilderSelect extends QueryBuilderQueries {
     }
 
     parse() {
+        if (typeof this.fields["*"] !== "undefined")
+            this.fields = {};
+
         let aggregations = [];
         if (this.fields && Object.keys(this.fields).length)
             aggregations.push({ "$project": this.fields });
 
-        if (this._where && Object.keys(this._where).length)
+        if (this._where && Object.keys(this._where).length) {
             aggregations.push({ "$match": this._where });
-
-        if (this._limit || typeof this._limit === "number")
-            aggregations.push({ "$limit": this._limit });
+        }
 
         if (this._offset || typeof this._offset === "number")
             aggregations.push({ "$skip": this._offset });
+
+        if (this._limit || typeof this._limit === "number")
+            aggregations.push({ "$limit": this._limit });
 
         return db => new Promise((resolve, reject) => db.collection(this.tableName)
             .aggregate(aggregations, (err, cursor) =>

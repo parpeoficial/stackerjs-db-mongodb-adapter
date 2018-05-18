@@ -1,9 +1,6 @@
 import { QueryCriteria } from "./index";
 
 
-const escape = word => word;
-
-
 const DETECT_FIELD_IS_WRAPPED_BY_FUNCTION = /[A-Za-z]+\((.*)\)/,
     DETECT_FIELD_IS_JSON = /[a-z_]+->"\$\.[a-z0-9._]+"/,
     DETECT_FIELD_IS_PARSED_JSON = /[a-zA-Z_]+->/,
@@ -33,65 +30,74 @@ const padString = (text, desiredSize, completeWith = "0") => {
 };
 
 export const treatValue = value => {
-    if (typeof value === "undefined" || value === null) return "NULL";
+    if (typeof value === "undefined") return null;
 
     if (value && typeof value.parse === "function")
         return `(${value.parse().slice(0, -1)})`;
 
-    let regexIsFunction = /[a-zA-Z_]+\((.*?)\)/;
-    if (regexIsFunction.test(value)) return value;
-
     if (value instanceof Date) value = parseDateToDateTimeString(value);
 
-    if (Array.isArray(value) || typeof value === "object")
-        value = JSON.stringify(value);
-
-    return escape(value);
+    return value;
 };
 
-export const parseFieldAndTable = (fieldName, tableName) => {
-    if (DETECT_FIELD_IS_WRAPPED_BY_FUNCTION.test(fieldName)) return fieldName;
-
-    if (DETECT_FIELD_IS_JSON.test(fieldName)) return fieldName;
-
+export const parseField = fieldName => {
     if (DETECT_FIELD_IS_PARSED_JSON.test(fieldName))
-        return (fields => `${fields.splice(0, 1)}->"$.${fields.join(".")}"`)(fieldName.split("->"));
+        return fieldName.replace(/->/g, ".");
 
-    if (tableName && !DETECT_FIELD_HAS_TABLE.test(fieldName))
-        return parseFieldAndTable(`${tableName}.${fieldName}`);
-
-    return fieldName
-        .split(".")
-        .map(w => (WRAPPED_BY_APOSTROPHE.test(w) || w === "*" ? w : `\`${w}\``))
-        .join(".");
+    return fieldName;
 };
 
-export const parseFilters = filter => {
-    if (typeof filter === "object") {
-        let expr = new QueryCriteria();
-        return Object.keys(filter)
-            .map(field => {
-                if (Array.isArray(filter[field])) {
-                    let [comp, value] = filter[field];
-                    return expr[comp.toLowerCase()](field, value);
-                }
-                else if (
-                    typeof filter[field] === "object" &&
-                    typeof filter[field].parse !== "function"
-                )
-                    return Object.keys(filter[field])
-                        .map(comp => {
-                            return expr[comp.toLowerCase()](
-                                field,
-                                filter[field][comp]
-                            );
-                        })
-                        .join(" AND ");
+export const parseFilters = filters => {
 
-                return expr.eq(field, filter[field]);
-            })
-            .join(" AND ");
-    }
+    let criteria = new QueryCriteria();
+    Object.keys(filters).forEach(key => {
+        if (Array.isArray(filters[key])) {
+            let [comp, value] = filters[key];
+            filters = { ...filters, ...criteria[comp.toLowerCase()](key, value) };
+            return delete filters[key];
+        }
 
-    return filter;
+        if (typeof filters[key] === "object" && typeof filters[key].parse !== "function") {
+            Object.keys(filters[key]).forEach(comp => {
+                if (!filters["$and"])
+                    filters["$and"] = [];
+
+                // let filter = {};
+                // filter[key] = criteria[comp.toLowerCase()](key, filters[key]);
+                filters["$and"].push(
+                    criteria[comp.toLowerCase()](key, filters[key])
+                );
+            });
+
+            return delete filters[key];
+        }
+
+        filters = { ...filters, ...criteria.eq(key, filters[key]) };
+    });
+
+    // if (typeof filter === "object") {
+    //     let expr = new QueryCriteria();
+    //     return Object.keys(filter)
+    //         .map(field => {
+    //             if (Array.isArray(filter[field])) {
+    //                 let [comp, value] = filter[field];
+    //                 return expr[comp.toLowerCase()](field, value);
+    //             }
+    //             else if (
+    //                 typeof filter[field] === "object" &&
+    //                 typeof filter[field].parse !== "function"
+    //             )
+    //                 return Object.keys(filter[field])
+    //                     .map(comp => {
+    //                         return expr[comp.toLowerCase()](
+    //                             field,
+    //                             filter[field][comp]
+    //                         );
+    //                     });
+
+    //             return expr.eq(field, filter[field]);
+    //         });
+    // }
+
+    return filters;
 };

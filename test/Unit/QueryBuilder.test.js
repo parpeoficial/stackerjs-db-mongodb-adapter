@@ -134,15 +134,15 @@ describe("Unit/QueryBuilderTest", () => {
                 .then(() => done());
         });
 
-        it.skip("Should filter by where with function", done => {
+        it("Should filter by where with function", done => {
             new QueryBuilder()
                 .select()
                 .set("*")
                 .from("user")
                 .where({
-                    "UPPER(last_name)": { eq: "UPPER(\"person\")" },
+                    "last_name": "person",
                     active: true,
-                    "extra->address->country": ["like", "\"%tugal%\""]
+                    "extra->address->country": ["like", "tugal"]
                 })
                 .execute()
                 .then(results => {
@@ -207,11 +207,11 @@ describe("Unit/QueryBuilderTest", () => {
                 .then(() => done());
         });
 
-        it.skip("Should LIMIT and OFFSET results", done => {
+        it("Should LIMIT and OFFSET results", done => {
             new QueryBuilder()
                 .select()
                 .from("user")
-                .set("id", ["first_name", "name"])
+                .set(["_id", "id"], ["first_name", "name"])
                 .limit(1)
                 .offset(1)
                 .execute()
