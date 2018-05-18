@@ -3,26 +3,28 @@ node_js:
   - "7"
 
 services:
-  - mysql
+  - mongodb
 
 notifications:
   slack: parpe:ypxSy7CvUXYAShDK7C3supzV
 
 before_install:
-  - npm install -g istanbul babel-cli
+  - mongo stackerjs --eval 'db.createUser({user:"travis", pwd:"test", roles:["readWrite"]});'
+  - echo "DB_HOST=localhost" >> .env
+  - echo "DB_NAME=stackerjs" >> .env
+  - echo "DB_USER=travis" >> .env
+  - echo "DB_PASS=test" >> .env
 
 install:
   - npm install
 
+after_install:
+  - npm install -g istanbul babel-cli
+
 before_script:
-  - echo DB_HOST = 127.0.0.1 >> .env
-  - echo DB_USER = root >> .env
-  - echo DB_HOST =  >> .env
-  - echo DB_NAME = stackerjs >> .env
   - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
   - chmod +x ./cc-test-reporter
   - ./cc-test-reporter before-build
-  - npm run build
 
 script:
   - npm run test
@@ -30,6 +32,7 @@ script:
 after_script:
   - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
   - rm -rf ./cc-test-reporter
+  - npm run build
 
 deploy:
   provider: npm
