@@ -9,30 +9,35 @@
 
 ![StackerJS](https://s3-sa-east-1.amazonaws.com/parpe.prod/StackerJS-logo.png)
 
-# Database: MySQL Adapter
-An MySQL adapter for StackerJS apps with ORM interacting with MySQL databases.
+# Database: MongoDB Adapter
+An MongoDB adapter for StackerJS apps with ORM interacting with Mongo databases.
 
 ## QueryBuilder
 
 ### Insert
 ```javascript
-import { QueryBuilder } from 'stackerjs-db-mysql-adapter';
+import { QueryBuilder } from 'stackerjs-db-mongodb-adapter';
 
 let query = new QueryBuilder()
     .insert()
     .set({
-        'full_name': 'mysql adapter',
+        'full_name': 'mongodb adapter',
         'age': 2
     })
     .into('person')
-    .parse();
+    .execute();
 
-    // INSERT INTO person (`full_name`, `age`) VALUES ("mysql adapter", 2);
+    /**
+     *  db.person.insertOne({
+     *      "full_name": "mongodb adapter",
+     *      "age": 2
+     *  }) 
+     */
 ```
 
 ### Select
 ```javascript
-import { QueryBuilder, QueryCriteria } from 'stackerjs-db-mysql-adapter';
+import { QueryBuilder, QueryCriteria } from 'stackerjs-db-mongodb-adapter';
 
 let criteria = new QueryCriteria(),
     query = new QueryBuilder()
@@ -46,45 +51,26 @@ let criteria = new QueryCriteria(),
                 criteria.like('name', '%george%')
             )
         )
-        .parse();
+        .execute();
 
-    // SELECT `person`.`id`, `person`.`full_name` AS name, `person`.`age` FROM person
-    // WHERE (`active` = 1 AND `age` >= 18 AND `name` LIKE "%george%");
+
+    /*
+     * db.person.aggregate([
+     *      {
+     *         $match: {
+     *              "active": true,
+     *              "age": { $gte: 18 },
+     *              "name": /george/
+     *          }
+     *      },
+     *      {
+     *          $project: {
+     *              id: 1, name: "$full_name", age: 1
+     *          }
+     *      }
+     * ])
+     */
 ```
-
-### Update
-```javascript
-import { QueryBuilder } from 'stackerjs-db-mysql-adapter';
-
-let query = new QueryBuilder()
-    .update()
-    .set({
-        'full_name': 'still mysql adapter'
-    })
-    .into('person')
-    .where({
-        'id': 1
-    })
-    .parse();
-
-    // UPDATE person SET `full_name` = "still mysql adapter" WHERE `id` = 1;
-```
-
-### Delete
-```javascript
-import { QueryBuilder } from 'stackerjs-db-mysql-adapter';
-
-let query = new QueryBuilder()
-    .delete()
-    .into('person')
-    .where({
-        'id': 1
-    })
-    .parse();
-
-    // DELETE FROM person WHERE `id` = 1;    
-```
-
 
 ## Filtering
 You can build filters using String, Object or QueryCriteria class
